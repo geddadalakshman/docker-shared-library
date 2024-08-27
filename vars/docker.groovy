@@ -83,154 +83,154 @@ def call(body) {
 //                }
 //            }
 
-            stage('build images') {
-                steps {
-                    script {
-                        sh """
-                        #!/bin/bash
-                        echo "aws login"
-                        aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 144538309574.dkr.ecr.us-east-1.amazonaws.com
-                        echo "aws login end"
-                        echo "${REPO_DIR}"
-                        ls -lah
-                        ##########################
-                        ### 1. Build images
-                        ########################## 
-                        """
+//            stage('build images') {
+//                steps {
+//                    script {
+//                        sh """
+//                        #!/bin/bash
+//                        echo "aws login"
+//                        aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 144538309574.dkr.ecr.us-east-1.amazonaws.com
+//                        echo "aws login end"
+//                        echo "${REPO_DIR}"
+//                        ls -lah
+//                        ##########################
+//                        ### 1. Build images
+//                        ##########################
+//                        """
+//
+//                        def images = ['grpc', 'rest', 'web']
+//
+//                        images.each { imageName ->
+//                            def buildCommand
+//
+//                            if (env.GH_TOKEN) {
+//                                buildCommand = "docker build --no-cache -t ${ECRREPO_NAME}-${imageName} " +
+//                                        "--build-arg GH_TOKEN=${GH_TOKEN} " +
+//                                        "--build-arg http_proxy=${HTTP_PROXY} " +
+//                                        "--build-arg https_proxy=${HTTPS_PROXY} " +
+//                                        "--build-arg HTTP_PROXY=${HTTP_PROXY} " +
+//                                        "--build-arg HTTPS_PROXY=${HTTPS_PROXY} " +
+//                                        "${REPO_DIR}/${imageName}"
+//                            } else {
+//                                buildCommand = "docker build --no-cache -t ${ECRREPO_NAME}-${imageName} " +
+//                                        "--build-arg http_proxy=${HTTP_PROXY} " +
+//                                        "--build-arg https_proxy=${HTTPS_PROXY} " +
+//                                        "--build-arg HTTP_PROXY=${HTTP_PROXY} " +
+//                                        "--build-arg HTTPS_PROXY=${HTTPS_PROXY} " +
+//                                        "${REPO_DIR}/${imageName}"
+//                            }
+//
+//                            sh """
+//                            echo "Building ${imageName} image"
+//                            ${buildCommand}
+//                            """
+//                        }
+//                    }
+//                }
+//            }
 
-                        def images = ['grpc', 'rest', 'web']
-
-                        images.each { imageName ->
-                            def buildCommand
-
-                            if (env.GH_TOKEN) {
-                                buildCommand = "docker build --no-cache -t ${ECRREPO_NAME}-${imageName} " +
-                                        "--build-arg GH_TOKEN=${GH_TOKEN} " +
-                                        "--build-arg http_proxy=${HTTP_PROXY} " +
-                                        "--build-arg https_proxy=${HTTPS_PROXY} " +
-                                        "--build-arg HTTP_PROXY=${HTTP_PROXY} " +
-                                        "--build-arg HTTPS_PROXY=${HTTPS_PROXY} " +
-                                        "${REPO_DIR}/${imageName}"
-                            } else {
-                                buildCommand = "docker build --no-cache -t ${ECRREPO_NAME}-${imageName} " +
-                                        "--build-arg http_proxy=${HTTP_PROXY} " +
-                                        "--build-arg https_proxy=${HTTPS_PROXY} " +
-                                        "--build-arg HTTP_PROXY=${HTTP_PROXY} " +
-                                        "--build-arg HTTPS_PROXY=${HTTPS_PROXY} " +
-                                        "${REPO_DIR}/${imageName}"
-                            }
-
-                            sh """
-                            echo "Building ${imageName} image"
-                            ${buildCommand}
-                            """
-                        }
-                    }
-                }
-            }
-
-            stage('tag images') {
-                when {
-                    anyOf {
-                        expression { env.BRANCH_NAME == "dev" }
-                        expression { env.BRANCH_NAME == "stg" }
-                        expression { env.BRANCH_NAME == "main" }
-                    }
-                }
-                steps {
-                    script {
-                        def images = ['grpc', 'rest', 'web']
-
-                        images.each { imageName ->
-                            def tagCommand
-
-                            if (env.GH_TOKEN) {
-                                tagCommand = "docker tag ${ECRREPO_NAME}-${imageName}:latest ${ACCOUNT_NUMBER}.dkr.ecr.us-east-1.amazonaws.com/${ECRREPO_NAME}-${imageName}:latest"
-                            } else {
-                                tagCommand = "docker tag ${ECRREPO_NAME}-${imageName}:latest ${ACCOUNT_NUMBER}.dkr.ecr.us-east-1.amazonaws.com/${ECRREPO_NAME}-${imageName}:${CURRENT_TIME}-${ENV}"
-                            }
-
-                            sh """
-                             echo "running tagCommand: $tagCommand"
-                        
-                            if ! $tagCommand; then
-                                echo "error, exiting deploy script.."
-                                exit 1
-                            fi
-                            """
-                        }
-                    }
-                }
-            }
-
-            stage('push images to ECR') {
-                when {
-                    anyOf {
-                        expression { env.BRANCH_NAME == "dev" }
-                        expression { env.BRANCH_NAME == "stg" }
-                        expression { env.BRANCH_NAME == "main" }
-                    }
-                }
-                steps {
-                    script {
-                        def images = ['grpc', 'rest', 'web']
-
-                        images.each { imageName ->
-                            def pushCommand
-
-                            if (env.GH_TOKEN) {
-                                pushCommand = "docker push ${ACCOUNT_NUMBER}.dkr.ecr.us-east-1.amazonaws.com/${ECRREPO_NAME}-${imageName}:latest"
-                            } else {
-                                pushCommand = "docker push ${ACCOUNT_NUMBER}.dkr.ecr.us-east-1.amazonaws.com/${ECRREPO_NAME}-${imageName}:${CURRENT_TIME}-${ENV}"
-                            }
-
-                            sh """
-                             echo "running pushCommand: $pushCommand"
-                        
-                            if ! $pushCommand; then
-                                echo "error, exiting deploy script.."
-                                exit 1
-                            fi 
-                            """
-                        }
-                    }
-                }
-            }
-
-            stage('ECS/FARGATE update service') {
-                steps {
-                    script {
-                        sh '''
-                        #!/bin/bash
-                        echo "ECS service update with new task definition"
-                        DEPLOY_COMMAND="aws ecs update-service \
-                        --cluster ${CLUSTER_NAME} \
-                        --service ${SERVICE_NAME} \
-                        --force-new-deployment \
-                        --region us-east-1"
-                        echo "running DEPLOY_COMMAND: $DEPLOY_COMMAND"
-                        
-                        if ! $DEPLOY_COMMAND; then
-                            echo "error, exiting deploy script"
-                            exit 1
-                        fi
-                        '''
-                    }
-                }
-            }
+//            stage('tag images') {
+//                when {
+//                    anyOf {
+//                        expression { env.BRANCH_NAME == "dev" }
+//                        expression { env.BRANCH_NAME == "stg" }
+//                        expression { env.BRANCH_NAME == "main" }
+//                    }
+//                }
+//                steps {
+//                    script {
+//                        def images = ['grpc', 'rest', 'web']
+//
+//                        images.each { imageName ->
+//                            def tagCommand
+//
+//                            if (env.GH_TOKEN) {
+//                                tagCommand = "docker tag ${ECRREPO_NAME}-${imageName}:latest ${ACCOUNT_NUMBER}.dkr.ecr.us-east-1.amazonaws.com/${ECRREPO_NAME}-${imageName}:latest"
+//                            } else {
+//                                tagCommand = "docker tag ${ECRREPO_NAME}-${imageName}:latest ${ACCOUNT_NUMBER}.dkr.ecr.us-east-1.amazonaws.com/${ECRREPO_NAME}-${imageName}:${CURRENT_TIME}-${ENV}"
+//                            }
+//
+//                            sh """
+//                             echo "running tagCommand: $tagCommand"
+//
+//                            if ! $tagCommand; then
+//                                echo "error, exiting deploy script.."
+//                                exit 1
+//                            fi
+//                            """
+//                        }
+//                    }
+//                }
+//            }
+//
+//            stage('push images to ECR') {
+//                when {
+//                    anyOf {
+//                        expression { env.BRANCH_NAME == "dev" }
+//                        expression { env.BRANCH_NAME == "stg" }
+//                        expression { env.BRANCH_NAME == "main" }
+//                    }
+//                }
+//                steps {
+//                    script {
+//                        def images = ['grpc', 'rest', 'web']
+//
+//                        images.each { imageName ->
+//                            def pushCommand
+//
+//                            if (env.GH_TOKEN) {
+//                                pushCommand = "docker push ${ACCOUNT_NUMBER}.dkr.ecr.us-east-1.amazonaws.com/${ECRREPO_NAME}-${imageName}:latest"
+//                            } else {
+//                                pushCommand = "docker push ${ACCOUNT_NUMBER}.dkr.ecr.us-east-1.amazonaws.com/${ECRREPO_NAME}-${imageName}:${CURRENT_TIME}-${ENV}"
+//                            }
+//
+//                            sh """
+//                             echo "running pushCommand: $pushCommand"
+//
+//                            if ! $pushCommand; then
+//                                echo "error, exiting deploy script.."
+//                                exit 1
+//                            fi
+//                            """
+//                        }
+//                    }
+//                }
+//            }
+//
+//            stage('ECS/FARGATE update service') {
+//                steps {
+//                    script {
+//                        sh '''
+//                        #!/bin/bash
+//                        echo "ECS service update with new task definition"
+//                        DEPLOY_COMMAND="aws ecs update-service \
+//                        --cluster ${CLUSTER_NAME} \
+//                        --service ${SERVICE_NAME} \
+//                        --force-new-deployment \
+//                        --region us-east-1"
+//                        echo "running DEPLOY_COMMAND: $DEPLOY_COMMAND"
+//
+//                        if ! $DEPLOY_COMMAND; then
+//                            echo "error, exiting deploy script"
+//                            exit 1
+//                        fi
+//                        '''
+//                    }
+//                }
+//            }
         }
 
-        post {
-            always {
-                script {
-                    cleanWs()
-                    sh 'docker system prune -af'
-                    mail body: """${currentBuild.currentResult}: Job ${env.JOB_NAME} build ${env.BUILD_NUMBER} \n More info at: ${env.BUILD_URL}""",
-                            subject: "Jenkins Build ${currentBuild.currentResult}: Job ${env.JOB_NAME}",
-                            to: "${env.CODE_AUTHOR},${env.CODE_MERGED}"
-                }
-            }
-        }
+//        post {
+//            always {
+//                script {
+//                    cleanWs()
+//                    sh 'docker system prune -af'
+//                    mail body: """${currentBuild.currentResult}: Job ${env.JOB_NAME} build ${env.BUILD_NUMBER} \n More info at: ${env.BUILD_URL}""",
+//                            subject: "Jenkins Build ${currentBuild.currentResult}: Job ${env.JOB_NAME}",
+//                            to: "${env.CODE_AUTHOR},${env.CODE_MERGED}"
+//                }
+//            }
+//        }
     }
 }
 
