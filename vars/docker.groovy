@@ -89,7 +89,7 @@ def call(body) {
                         sh """
                         #!/bin/bash
                         echo "aws login"
-                        aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 144538309574.dkr.ecr.us-east-1.amazonaws.com
+                        aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 533267196238.dkr.ecr.us-east-1.amazonaws.com
                         echo "aws login end"
                         echo "${REPO_DIR}"
                         ls -lah
