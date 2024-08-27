@@ -46,41 +46,41 @@ def call(body) {
                 }
             }
 
-            stage('validate parameters') {
-                steps {
-                    script {
-                        dir('app') {
-                            // Read the YAML file
-                            def yamlConfig = readYaml file: '${ENV}-deployvariables.yml'
-                            // Iterate over each key-value pair and print them
-                            yamlConfig.each { key, value ->
-                                // Set each variable as a Jenkins env variable
-                                env."${key.toUpperCase()}" = value
-                            }
-                        }
-                        sh """
-                        #!bin/bash
-                        # Validation of parameter variables.
-                        if [ -z ${ENV} ]; then
-                            echo '${ENV} is NULL. Please validate deploy-variables.sh'
-                            exit 1
-                        fi
-                        if [ -z ${ECRREPO_NAME} ]; then
-                            echo '${ECRREPO_NAME} is NULL. Please validate deploy-variables.sh'
-                            exit 1
-                        fi
-                        if [ -z ${SERVICE_NAME} ]; then
-                            echo '${SERVICE_NAME} is NULL. Please validate deploy-variables.sh'
-                            exit 1
-                        fi
-                        if [ -z ${CLUSTER_NAME} ]; then
-                            echo '${CLUSTER_NAME} is NULL. Please validate deploy-variables.sh'
-                            exit 1
-                        fi
-                        """
-                    }
-                }
-            }
+//            stage('validate parameters') {
+//                steps {
+//                    script {
+//                        dir('app') {
+//                            // Read the YAML file
+//                            def yamlConfig = readYaml file: '${ENV}-deployvariables.yml'
+//                            // Iterate over each key-value pair and print them
+//                            yamlConfig.each { key, value ->
+//                                // Set each variable as a Jenkins env variable
+//                                env."${key.toUpperCase()}" = value
+//                            }
+//                        }
+//                        sh """
+//                        #!bin/bash
+//                        # Validation of parameter variables.
+//                        if [ -z ${ENV} ]; then
+//                            echo '${ENV} is NULL. Please validate deploy-variables.sh'
+//                            exit 1
+//                        fi
+//                        if [ -z ${ECRREPO_NAME} ]; then
+//                            echo '${ECRREPO_NAME} is NULL. Please validate deploy-variables.sh'
+//                            exit 1
+//                        fi
+//                        if [ -z ${SERVICE_NAME} ]; then
+//                            echo '${SERVICE_NAME} is NULL. Please validate deploy-variables.sh'
+//                            exit 1
+//                        fi
+//                        if [ -z ${CLUSTER_NAME} ]; then
+//                            echo '${CLUSTER_NAME} is NULL. Please validate deploy-variables.sh'
+//                            exit 1
+//                        fi
+//                        """
+//                    }
+//                }
+//            }
 
             stage('build images') {
                 steps {
