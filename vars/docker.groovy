@@ -83,20 +83,20 @@ def call(body) {
 //                }
 //            }
 
-//            stage('build images') {
-//                steps {
-//                    script {
-//                        sh """
-//                        #!/bin/bash
-//                        echo "aws login"
-//                        aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 144538309574.dkr.ecr.us-east-1.amazonaws.com
-//                        echo "aws login end"
-//                        echo "${REPO_DIR}"
-//                        ls -lah
-//                        ##########################
-//                        ### 1. Build images
-//                        ##########################
-//                        """
+            stage('build images') {
+                steps {
+                    script {
+                        sh """
+                        #!/bin/bash
+                        echo "aws login"
+                        aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 144538309574.dkr.ecr.us-east-1.amazonaws.com
+                        echo "aws login end"
+                        echo "${REPO_DIR}"
+                        ls -lah
+                        ##########################
+                        ### 1. Build images
+                        ##########################
+                        """
 //
 //                        def images = ['grpc', 'rest', 'web']
 //
@@ -125,9 +125,9 @@ def call(body) {
 //                            ${buildCommand}
 //                            """
 //                        }
-//                    }
-//                }
-//            }
+                    }
+                }
+            }
 
 //            stage('tag images') {
 //                when {
