@@ -21,9 +21,10 @@ def call(body) {
     config['mergebranch'] = mergebranch
 
     pipeline {
-        agent {
-            label 'linux'
-        }
+        agent any
+//        agent {
+//            label 'linux'
+//        }
         options {
             buildDiscarder(logRotator(numToKeepStr: '10'))
         }
